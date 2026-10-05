@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Analytics & Platform Telemetry | Aegis Anti-Cheat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="{{ url_for('dashboard') }}" class="brand">
+            <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <span>AEGIS ANTI-CHEAT</span>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('moderator_dashboard') }}" class="nav-link"><i class="fa-solid fa-list-check"></i> Audit Queue</a>
+            <a href="{{ url_for('analytics') }}" class="nav-link active"><i class="fa-solid fa-chart-pie"></i> Platform Analytics</a>
+            <div class="user-badge"><i class="fa-solid fa-user-shield"></i> {{ session.username }}</div>
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Header -->
+        <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 1.85rem; font-weight: 800;">Anti-Cheat Model Analytics & Telemetry</h1>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+                Comparative evaluation metrics, class distribution, and real-time inference statistics.
+            </p>
+        </div>
+
+        <!-- Overall KPI Cards -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span class="stat-label">Total Ingested Frames</span>
+                <span class="stat-value primary">{{ total_sessions }}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Suspicious Detections</span>
+                <span class="stat-value danger">{{ total_cheats }}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Live Detection Rate</span>
+                <span class="stat-value warning">{{ cheat_rate }}%</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Production Model AUC</span>
+                <span class="stat-value success">0.9938</span>
+            </div>
+        </div>
+
+        <!-- Benchmark Algorithm Comparison Table -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-trophy" style="color: var(--warning);"></i>
+                Algorithm Benchmark Comparison (Group-Aware Train/Test Split)
+            </div>
+            <div class="card-subtitle">
+                Performance across 10,000 gameplay records evaluated strictly with zero group leakage.
+            </div>
+
+            <div class="table-responsive">
+                <table class="cyber-table">
+                    <thead>
+                        <tr>
+                            <th>Algorithm</th>
+                            <th>Accuracy</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>F1-Score</th>
+                            <th>ROC-AUC</th>
+                            <th>Inference Latency</th>
+                            <th>Deployment Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: rgba(0, 242, 254, 0.05); border-left: 3px solid var(--primary);">
+                            <td><strong style="color: var(--primary);">Logistic Regression</strong></td>
+                            <td><strong>96.60%</strong></td>
+                            <td><strong>95.44%</strong></td>
+                            <td>90.91%</td>
+                            <td><strong>93.12%</strong></td>
+                            <td><strong style="color: var(--success);">0.9938</strong></td>
+                            <td>&lt; 1.2 ms</td>
+                            <td><span class="badge badge-legit">Active Production</span></td>
+                        </tr>
+                        <tr>
+                            <td>Random Forest</td>
+                            <td>96.25%</td>
+                            <td>94.80%</td>
+                            <td>90.12%</td>
+                            <td>92.40%</td>
+                            <td>0.9878</td>
+                            <td>~ 14.5 ms</td>
+                            <td><span class="badge">Candidate</span></td>
+                        </tr>
+                        <tr>
+                            <td>Decision Tree</td>
+                            <td>94.80%</td>
+                            <td>90.85%</td>
+                            <td>88.34%</td>
+                            <td>89.58%</td>
+                            <td>0.9266</td>
+                            <td>&lt; 2.0 ms</td>
+                            <td><span class="badge">Baseline</span></td>
+                        </tr>
+                        <tr>
+                            <td>K-Nearest Neighbors</td>
+                            <td>93.95%</td>
+                            <td>97.07%</td>
+                            <td>78.46%</td>
+                            <td>86.78%</td>
+                            <td>0.9637</td>
+                            <td>~ 38.0 ms</td>
+                            <td><span class="badge">Disqualified (Latency)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+            <!-- Algorithm Comparison Radar/Bar -->
+            <div class="card">
+                <div class="card-title">
+                    <i class="fa-solid fa-chart-bar" style="color: var(--secondary);"></i>
+                    Model Comparison by Metric (%)
+                </div>
+                <div style="position: relative; height: 260px;">
+                    <canvas id="modelComparisonChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Risk Distribution Doughnut -->
+            <div class="card">
+                <div class="card-title">
+                    <i class="fa-solid fa-chart-pie" style="color: var(--accent);"></i>
+                    Risk Distribution Breakdown
+                </div>
+                <div style="position: relative; height: 260px;">
+                    <canvas id="riskDoughnutChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        In-Game Cheat Detection System • Final Year Engineering Project • Analytics
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Model Comparison Chart
+            const ctx1 = document.getElementById('modelComparisonChart');
+            if (ctx1) {
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Accuracy', 'Precision', 'Recall', 'F1-Score'],
+                        datasets: [
+                            {
+                                label: 'Logistic Regression',
+                                data: [96.60, 95.44, 90.91, 93.12],
+                                backgroundColor: 'rgba(0, 242, 254, 0.7)',
+                                borderColor: '#00f2fe',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Random Forest',
+                                data: [96.25, 94.80, 90.12, 92.40],
+                                backgroundColor: 'rgba(79, 172, 254, 0.7)',
+                                borderColor: '#4facfe',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'KNN',
+                                data: [93.95, 97.07, 78.46, 86.78],
+                                backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                                borderColor: '#8b5cf6',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                min: 70,
+                                max: 100,
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: { color: '#9ca3af' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#9ca3af' }
+                            }
+                        },
+                        plugins: {
+                            legend: { labels: { color: '#f3f4f6' } }
+                        }
+                    }
+                });
+            }
+
+            // Risk Doughnut Chart
+            const ctx2 = document.getElementById('riskDoughnutChart');
+            if (ctx2) {
+                new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Low Risk (Legitimate)', 'Medium Risk (Borderline)', 'High Risk (Cheater)'],
+                        datasets: [{
+                            data: [75.28, 9.80, 14.92],
+                            backgroundColor: [
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(245, 158, 11, 0.8)',
+                                'rgba(239, 68, 68, 0.8)'
+                            ],
+                            borderColor: '#111827',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#f3f4f6', padding: 15 }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | In-Game Cheat Detection System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem;">
+
+    <div style="max-width: 440px; width: 100%;">
+        <!-- Brand Header -->
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="display: inline-flex; width: 56px; height: 56px; background: linear-gradient(135deg, #00f2fe, #4facfe); border-radius: 12px; align-items: center; justify-content: center; font-size: 1.75rem; color: #000; box-shadow: 0 0 25px rgba(0, 242, 254, 0.4); margin-bottom: 1rem;">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h1 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em;">AEGIS ANTI-CHEAT</h1>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.35rem;">Kinematic Telemetry Anomaly Detection Platform</p>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        {% if request.args.get('registered') %}
+        <div class="alert alert-success">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Account created successfully! Please sign in.</span>
+        </div>
+        {% endif %}
+
+        {% if register_error %}
+        <div class="alert alert-danger">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ register_error }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Auth Card -->
+        <div class="card" style="padding: 2rem;">
+            <!-- Tabs -->
+            <div style="display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+                <button type="button" id="loginTabBtn" onclick="switchAuthTab('login')" style="flex: 1; padding: 0.75rem; background: none; border: none; border-bottom: 2px solid var(--primary); color: var(--primary); font-weight: 700; cursor: pointer;">
+                    Sign In
+                </button>
+                <button type="button" id="regTabBtn" onclick="switchAuthTab('register')" style="flex: 1; padding: 0.75rem; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-weight: 600; cursor: pointer;">
+                    Register
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" method="POST" action="{{ url_for('login') }}">
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="login-username"><i class="fa-solid fa-user"></i> Username</label>
+                    <input type="text" id="login-username" name="username" class="form-control" placeholder="e.g. player1 or moderator1" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
+                    <input type="password" id="login-password" name="password" class="form-control" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Sign In to Dashboard
+                </button>
+            </form>
+
+            <!-- Register Form (Hidden initially) -->
+            <form id="registerForm" method="POST" action="{{ url_for('register') }}" style="display: none;">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="reg-username"><i class="fa-solid fa-user-plus"></i> Choose Username</label>
+                    <input type="text" id="reg-username" name="username" class="form-control" placeholder="New handle" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="reg-password"><i class="fa-solid fa-lock"></i> Set Password</label>
+                    <input type="password" id="reg-password" name="password" class="form-control" placeholder="••••••••" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label for="reg-role"><i class="fa-solid fa-shield"></i> Account Role</label>
+                    <select id="reg-role" name="role" class="form-control">
+                        <option value="player">Player (Telemetry Tester)</option>
+                        <option value="moderator">Moderator (Review & Analytics)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fa-solid fa-user-check"></i> Create Account
+                </button>
+            </form>
+
+            <!-- College Project Seed Credential Notice -->
+            <div style="margin-top: 1.75rem; padding: 0.85rem; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-color); border-radius: var(--radius-sm); font-size: 0.775rem;">
+                <div style="color: var(--primary); font-weight: 700; margin-bottom: 0.35rem;">
+                    <i class="fa-solid fa-lightbulb"></i> Demo Presentation Credentials:
+                </div>
+                <div style="color: var(--text-muted); line-height: 1.5;">
+                    • <strong>Player:</strong> <code>player1</code> | <strong>Password:</strong> <code>password123</code><br>
+                    • <strong>Moderator:</strong> <code>moderator1</code> | <strong>Password:</strong> <code>password123</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchAuthTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const regForm = document.getElementById('registerForm');
+            const loginBtn = document.getElementById('loginTabBtn');
+            const regBtn = document.getElementById('regTabBtn');
+
+            if (tab === 'login') {
+                loginForm.style.display = 'block';
+                regForm.style.display = 'none';
+                loginBtn.style.borderBottomColor = 'var(--primary)';
+                loginBtn.style.color = 'var(--primary)';
+                regBtn.style.borderBottomColor = 'transparent';
+                regBtn.style.color = 'var(--text-muted)';
+            } else {
+                loginForm.style.display = 'none';
+                regForm.style.display = 'block';
+                regBtn.style.borderBottomColor = 'var(--primary)';
+                regBtn.style.color = 'var(--primary)';
+                loginBtn.style.borderBottomColor = 'transparent';
+                loginBtn.style.color = 'var(--text-muted)';
+            }
+        }
+    </script>
+</body>
+</html>

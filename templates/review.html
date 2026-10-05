@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Session #{{ session.prediction_id }} | Aegis Anti-Cheat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="{{ url_for('dashboard') }}" class="brand">
+            <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <span>AEGIS ANTI-CHEAT</span>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('moderator_dashboard') }}" class="nav-link"><i class="fa-solid fa-arrow-left"></i> Back to Queue</a>
+            <a href="{{ url_for('analytics') }}" class="nav-link"><i class="fa-solid fa-chart-pie"></i> Analytics</a>
+            <div class="user-badge"><i class="fa-solid fa-user-shield"></i> {{ session.moderator_name or 'Moderator' }}</div>
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 900px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div>
+                <h1 style="font-size: 1.85rem; font-weight: 800;">Telemetry Audit & Case Investigation</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">
+                    Investigating Session #{{ session.session_id }} (Prediction #{{ session.prediction_id }}) for Player: <strong style="color: var(--primary);">{{ session.username }}</strong>
+                </p>
+            </div>
+            <div>
+                {% if session.risk_level == 'HIGH' %}
+                <span class="badge badge-high" style="font-size: 0.9rem; padding: 0.4rem 1rem;">HIGH RISK TELEMETRY</span>
+                {% elif session.risk_level == 'MEDIUM' %}
+                <span class="badge badge-medium" style="font-size: 0.9rem; padding: 0.4rem 1rem;">MEDIUM RISK TELEMETRY</span>
+                {% else %}
+                <span class="badge badge-low" style="font-size: 0.9rem; padding: 0.4rem 1rem;">LOW RISK TELEMETRY</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ML Inference Summary Card -->
+        <div class="card" style="border-left: 4px solid {{ '#ef4444' if session.prediction == 'SUSPICIOUS' else '#10b981' }};">
+            <div class="card-title">
+                <i class="fa-solid fa-brain" style="color: var(--secondary);"></i>
+                Machine Learning Algorithm Verdict
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div>
+                    <span class="stat-label">Model Classification</span>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: {{ '#ef4444' if session.prediction == 'SUSPICIOUS' else '#10b981' }};">
+                        {{ session.prediction }}
+                    </div>
+                </div>
+                <div>
+                    <span class="stat-label">Confidence Probability</span>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">
+                        {{ "%.2f"|format(session.probability) }}%
+                    </div>
+                </div>
+                <div>
+                    <span class="stat-label">Model Architecture</span>
+                    <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-muted);">
+                        Logistic Regression (v1.0)
+                    </div>
+                </div>
+                <div>
+                    <span class="stat-label">Detection Threshold</span>
+                    <div style="font-size: 1.1rem; font-weight: 600; color: var(--primary);">
+                        ≥ 31.0% Probability
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Telemetry Breakdown -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-crosshairs" style="color: var(--primary);"></i>
+                Recorded In-Game Telemetry Parameters
+            </div>
+            <div class="card-subtitle">Physics and spatial metrics at timestamp: {{ session.created_at }}</div>
+
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); margin-bottom: 1.5rem;">
+                <div class="stat-box">
+                    <span class="stat-label">Delta Yaw</span>
+                    <span class="stat-value" style="font-size: 1.25rem;">{{ "%.2f"|format(session.delta_yaw) }}°</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Delta Pitch</span>
+                    <span class="stat-value" style="font-size: 1.25rem;">{{ "%.2f"|format(session.delta_pitch) }}°</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Accel Yaw</span>
+                    <span class="stat-value" style="font-size: 1.25rem;">{{ "%.2f"|format(session.accel_yaw) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Accel Pitch</span>
+                    <span class="stat-value" style="font-size: 1.25rem;">{{ "%.2f"|format(session.accel_pitch) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Sensitivity</span>
+                    <span class="stat-value" style="font-size: 1.25rem;">{{ "%.1f"|format(session.sensitivity) }}</span>
+                </div>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.02); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-size: 0.85rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <strong style="color: var(--primary);">Player Position:</strong>
+                        ({{ "%.2f"|format(session.position_x) }}, {{ "%.2f"|format(session.position_y) }}, {{ "%.2f"|format(session.position_z) }})
+                    </div>
+                    <div>
+                        <strong style="color: var(--secondary);">Target Hitbox:</strong>
+                        ({{ "%.2f"|format(session.target_x) }}, {{ "%.2f"|format(session.target_y) }}, {{ "%.2f"|format(session.target_z) }})
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Moderator Decision Form -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-gavel" style="color: var(--warning);"></i>
+                Human-in-the-Loop Audit Decision
+            </div>
+            <div class="card-subtitle">
+                Submit human verdict to finalize case outcome or validate automated decision.
+            </div>
+
+            <form method="POST" action="{{ url_for('review_session', prediction_id=session.prediction_id) }}">
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="decision"><i class="fa-solid fa-stamp"></i> Moderator Determination</label>
+                    <select id="decision" name="decision" class="form-control" style="font-size: 1rem; padding: 0.75rem;">
+                        <option value="Under Review" {{ 'selected' if session.decision == 'Under Review' }}>⏳ Under Review (Pending Further Telemetry)</option>
+                        <option value="Confirmed Suspicious" {{ 'selected' if session.decision == 'Confirmed Suspicious' }}>🚫 Confirmed Suspicious (Sanction Applied / Aimbot Verified)</option>
+                        <option value="Not Suspicious" {{ 'selected' if session.decision == 'Not Suspicious' }}>✅ Not Suspicious (False Positive Cleared)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label for="comments"><i class="fa-solid fa-comment-dots"></i> Audit Notes & Evidence Rationale</label>
+                    <textarea id="comments" name="comments" class="form-control" rows="4" placeholder="Enter notes regarding kinematic trajectory, flick speed, or player justification...">{{ session.comments or '' }}</textarea>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <a href="{{ url_for('moderator_dashboard') }}" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrow-left"></i> Return to Queue
+                    </a>
+                    <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem;">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Audit Determination
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        In-Game Cheat Detection System • Telemetry Ingestion Engine
+    </footer>
+</body>
+</html>

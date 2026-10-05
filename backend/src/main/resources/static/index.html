@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Toastify -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Event Registration</h1>
+        
+        <form id="registrationForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                <input type="text" id="fullName" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="email" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Category</label>
+                <select id="category" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="General">General</option>
+                    <option value="VIP">VIP</option>
+                    <option value="Speaker">Speaker</option>
+                    <option value="Sponsor">Sponsor</option>
+                </select>
+            </div>
+
+            <button type="submit" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-200">
+                Register Now
+            </button>
+        </form>
+        
+        <div class="mt-4 text-center">
+            <a href="admin.html" class="text-sm text-blue-500 hover:underline">Admin Login</a>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fullName = document.getElementById('fullName').value;
+            const email = document.getElementById('email').value;
+            const category = document.getElementById('category').value;
+
+            try {
+                const response = await fetch('http://localhost:8080/api/participants/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fullName, email, category })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    Toastify({
+                        text: `Registration Successful! UUID: ${data.id}`,
+                        duration: -1, // Keep open
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        style: {
+                            background: "linear-gradient(to right, #00b09b, #96c93d)",
+                        }
+                    }).showToast();
+                    document.getElementById('registrationForm').reset();
+                } else {
+                    Toastify({ text: "Registration failed. Try again.", backgroundColor: "red" }).showToast();
+                }
+            } catch (err) {
+                console.error(err);
+                Toastify({ text: "Server error. Is the backend running?", backgroundColor: "red" }).showToast();
+            }
+        });
+    </script>
+</body>
+</html>

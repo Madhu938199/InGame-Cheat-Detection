@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Dashboard | Aegis Anti-Cheat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="{{ url_for('dashboard') }}" class="brand">
+            <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <span>AEGIS ANTI-CHEAT</span>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('player_dashboard') }}" class="nav-link active"><i class="fa-solid fa-gamepad"></i> My Telemetry</a>
+            <a href="{{ url_for('gameplay') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-play"></i> Simulate Gameplay</a>
+            <div class="user-badge"><i class="fa-solid fa-user"></i> {{ session.username }} (<strong>Player</strong>)</div>
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="container">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+            <div>
+                <h1 style="font-size: 1.85rem; font-weight: 800;">Player Telemetry Hub</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Real-time kinematic tracking and behavioral integrity monitor.</p>
+            </div>
+            <a href="{{ url_for('gameplay') }}" class="btn btn-primary">
+                <i class="fa-solid fa-satellite-dish"></i> Start Telemetry Session
+            </a>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span class="stat-label">Total Logged Sessions</span>
+                <span class="stat-value primary">{{ total_sessions }}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Integrity Status</span>
+                <span class="stat-value {{ 'danger' if suspicious_count > 0 else 'success' }}">
+                    {{ 'FLAGGED' if suspicious_count > 0 else 'CLEAN' }}
+                </span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Suspicious Detections</span>
+                <span class="stat-value {{ 'danger' if suspicious_count > 0 else 'success' }}">{{ suspicious_count }}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Active ML Engine</span>
+                <span class="stat-value" style="font-size: 1.25rem; font-weight: 700; color: var(--secondary); margin-top: 0.5rem;">
+                    Logistic Regression (v1.0)
+                </span>
+            </div>
+        </div>
+
+        <!-- Recent Gameplay Sessions Card -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i>
+                Recent Gameplay Telemetry Sessions
+            </div>
+            <div class="card-subtitle">Showing latest telemetry streams evaluated by Aegis ML Core</div>
+
+            {% if sessions %}
+            <div class="table-responsive">
+                <table class="cyber-table">
+                    <thead>
+                        <tr>
+                            <th>Session ID</th>
+                            <th>Timestamp</th>
+                            <th>Yaw Delta (°/t)</th>
+                            <th>Pitch Delta (°/t)</th>
+                            <th>Accel Yaw</th>
+                            <th>Probability</th>
+                            <th>Risk Score</th>
+                            <th>Verdict</th>
+                            <th>Review Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sessions %}
+                        <tr>
+                            <td><strong>#{{ s.session_id }}</strong></td>
+                            <td style="color: var(--text-muted); font-size: 0.8rem;">{{ s.created_at }}</td>
+                            <td>{{ "%.2f"|format(s.delta_yaw) }}</td>
+                            <td>{{ "%.2f"|format(s.delta_pitch) }}</td>
+                            <td>{{ "%.2f"|format(s.accel_yaw) }}</td>
+                            <td><strong>{{ "%.2f"|format(s.probability) if s.probability is not none else 'N/A' }}%</strong></td>
+                            <td>
+                                {% if s.risk_level == 'LOW' %}
+                                <span class="badge badge-low">LOW</span>
+                                {% elif s.risk_level == 'MEDIUM' %}
+                                <span class="badge badge-medium">MEDIUM</span>
+                                {% elif s.risk_level == 'HIGH' %}
+                                <span class="badge badge-high">HIGH</span>
+                                {% else %}
+                                <span class="badge">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if s.prediction == 'LEGITIMATE' %}
+                                <span class="badge badge-legit"><i class="fa-solid fa-check"></i> Legitimate</span>
+                                {% elif s.prediction == 'SUSPICIOUS' %}
+                                <span class="badge badge-cheat"><i class="fa-solid fa-triangle-exclamation"></i> Suspicious</span>
+                                {% else %}
+                                <span class="badge">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td style="font-size: 0.85rem; color: var(--text-muted);">
+                                {{ s.decision }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+                <i class="fa-solid fa-crosshairs" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                <p>No telemetry recorded yet.</p>
+                <a href="{{ url_for('gameplay') }}" class="btn btn-secondary btn-sm" style="margin-top: 1rem;">
+                    Record First Telemetry Stream
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <footer>
+        In-Game Cheat Detection System • Final Year Engineering Project • Group-Aware Anti-Cheat Telemetry
+    </footer>
+</body>
+</html>

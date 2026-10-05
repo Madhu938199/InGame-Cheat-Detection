@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderator Control Center | Aegis Anti-Cheat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="{{ url_for('moderator_dashboard') }}" class="brand">
+            <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <span>AEGIS ANTI-CHEAT</span>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('moderator_dashboard') }}" class="nav-link active"><i class="fa-solid fa-list-check"></i> Audit Queue</a>
+            <a href="{{ url_for('analytics') }}" class="nav-link"><i class="fa-solid fa-chart-pie"></i> Platform Analytics</a>
+            <div class="user-badge" style="border-color: rgba(0, 242, 254, 0.4);">
+                <i class="fa-solid fa-user-shield"></i> {{ session.username }} (<strong>Moderator</strong>)
+            </div>
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+            <div>
+                <h1 style="font-size: 1.85rem; font-weight: 800;">Moderator Control Center</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Human-in-the-loop review pipeline for high-risk telemetry and borderline ML classifications.</p>
+            </div>
+            <a href="{{ url_for('analytics') }}" class="btn btn-secondary btn-sm">
+                <i class="fa-solid fa-chart-line"></i> View Model Metrics
+            </a>
+        </div>
+
+        <!-- KPI Metrics -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span class="stat-label">Total Ingested Frames</span>
+                <span class="stat-value primary">{{ total_scans }}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Suspicious Detections</span>
+                <span class="stat-value danger">{{ suspicious_total }}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Pending In-Review</span>
+                <span class="stat-value warning">{{ pending_reviews }}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Confirmed Cheaters</span>
+                <span class="stat-value danger">{{ confirmed_cheaters }}</span>
+            </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="card" style="padding: 1.25rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
+                <div style="display: flex; gap: 1rem; flex: 1; min-width: 280px;">
+                    <div style="position: relative; flex: 1;">
+                        <input type="text" id="sessionSearch" class="form-control" placeholder="Search by player handle..." style="padding-left: 2rem; width: 100%;">
+                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 0.85rem;"></i>
+                    </div>
+                    <select id="riskFilter" class="form-control" style="width: 160px;">
+                        <option value="ALL">All Risk Levels</option>
+                        <option value="HIGH">High Risk</option>
+                        <option value="MEDIUM">Medium Risk</option>
+                        <option value="LOW">Low Risk</option>
+                    </select>
+                </div>
+                <div style="font-size: 0.825rem; color: var(--text-muted);">
+                    ML Threshold: <strong style="color: var(--primary);">31.0% Probability</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Queue Table -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-table-list" style="color: var(--primary);"></i>
+                Active Telemetry Audit Queue
+            </div>
+            <div class="card-subtitle">Review algorithm scores and submit manual verification decisions</div>
+
+            {% if sessions %}
+            <div class="table-responsive">
+                <table class="cyber-table">
+                    <thead>
+                        <tr>
+                            <th>Pred ID</th>
+                            <th>Player</th>
+                            <th>Time</th>
+                            <th>Yaw Delta</th>
+                            <th>Pitch Delta</th>
+                            <th>ML Prob</th>
+                            <th>Risk Tier</th>
+                            <th>ML Label</th>
+                            <th>Moderator Action</th>
+                            <th>Audit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessionTableBody">
+                        {% for s in sessions %}
+                        <tr>
+                            <td><strong>#{{ s.prediction_id }}</strong></td>
+                            <td class="user-cell" style="font-weight: 600;">
+                                <i class="fa-solid fa-user" style="font-size: 0.75rem; color: var(--text-dim);"></i> {{ s.username }}
+                            </td>
+                            <td style="color: var(--text-muted); font-size: 0.75rem;">{{ s.created_at }}</td>
+                            <td>{{ "%.2f"|format(s.delta_yaw) }}°</td>
+                            <td>{{ "%.2f"|format(s.delta_pitch) }}°</td>
+                            <td><strong>{{ "%.2f"|format(s.probability) }}%</strong></td>
+                            <td class="risk-cell">
+                                {% if s.risk_level == 'LOW' %}
+                                <span class="badge badge-low">LOW</span>
+                                {% elif s.risk_level == 'MEDIUM' %}
+                                <span class="badge badge-medium">MEDIUM</span>
+                                {% elif s.risk_level == 'HIGH' %}
+                                <span class="badge badge-high">HIGH</span>
+                                {% else %}
+                                <span class="badge">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if s.prediction == 'LEGITIMATE' %}
+                                <span class="badge badge-legit">Legitimate</span>
+                                {% else %}
+                                <span class="badge badge-cheat">Suspicious</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if s.decision == 'Confirmed Suspicious' %}
+                                <span style="color: var(--danger); font-size: 0.85rem; font-weight: 600;">
+                                    <i class="fa-solid fa-ban"></i> Confirmed
+                                </span>
+                                {% elif s.decision == 'Not Suspicious' %}
+                                <span style="color: var(--success); font-size: 0.85rem; font-weight: 600;">
+                                    <i class="fa-solid fa-check"></i> Cleared
+                                </span>
+                                {% else %}
+                                <span style="color: var(--warning); font-size: 0.85rem; font-weight: 600;">
+                                    <i class="fa-solid fa-hourglass-half"></i> Under Review
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('review_session', prediction_id=s.prediction_id) }}" class="btn btn-secondary btn-sm">
+                                    <i class="fa-solid fa-pen-to-square"></i> Review
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                <i class="fa-solid fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+                <p>No telemetry records found in database.</p>
+                <p style="font-size: 0.85rem;">Login as player or use the API to generate test frames.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <footer>
+        In-Game Cheat Detection System • Final Year Engineering Project • Moderator Panel
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

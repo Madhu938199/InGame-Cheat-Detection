@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <style>
+        /* Custom Switch Styles */
+        .toggle-checkbox:checked { right: 0; border-color: #10B981; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #10B981; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+    <div id="loginView" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-20">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Admin Login</h2>
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Username</label>
+                <input type="text" id="username" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="password" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+            </div>
+            <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold">Login</button>
+            <button type="button" id="setupDefault" class="w-full mt-2 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">Create Default Admin (admin/pass)</button>
+        </form>
+        <div class="mt-4 text-center">
+            <a href="index.html" class="text-sm text-blue-500 hover:underline">Back to Registration</a>
+        </div>
+    </div>
+
+    <div id="dashboardView" class="hidden max-w-6xl mx-auto space-y-6">
+        <div class="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm">
+            <h1 class="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+            <div class="space-x-4">
+                <button id="downloadBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    ⬇ Download CSV
+                </button>
+                <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">Logout</button>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm">
+            <input type="text" id="searchInput" placeholder="Search by Name or UUID..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 border-b border-gray-200">
+                        <th class="p-4 font-semibold text-gray-600">UUID</th>
+                        <th class="p-4 font-semibold text-gray-600">Full Name</th>
+                        <th class="p-4 font-semibold text-gray-600">Category</th>
+                        <th class="p-4 font-semibold text-gray-600">Attendance</th>
+                        <th class="p-4 font-semibold text-gray-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="participantsTableBody">
+                    <!-- Rows injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        let participants = [];
+
+        // Handle Setup
+        document.getElementById('setupDefault').addEventListener('click', async () => {
+            try {
+                const res = await fetch(`${API_BASE}/admin/setup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'password' })
+                });
+                if(res.ok) Toastify({text: "Default admin 'admin' created!", backgroundColor: "green"}).showToast();
+                else Toastify({text: "Admin already exists", backgroundColor: "orange"}).showToast();
+            } catch(e) { Toastify({text: "Server error", backgroundColor: "red"}).showToast(); }
+        });
+
+        // Handle Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const res = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                if (res.ok) {
+                    document.getElementById('loginView').classList.add('hidden');
+                    document.getElementById('dashboardView').classList.remove('hidden');
+                    fetchParticipants();
+                } else {
+                    Toastify({text: "Invalid Credentials", backgroundColor: "red"}).showToast();
+                }
+            } catch(e) { Toastify({text: "Server Error", backgroundColor: "red"}).showToast(); }
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+             document.getElementById('dashboardView').classList.add('hidden');
+             document.getElementById('loginView').classList.remove('hidden');
+             document.getElementById('loginForm').reset();
+             participants = [];
+        });
+
+        const fetchParticipants = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/participants`);
+                participants = await res.json();
+                renderTable(participants);
+            } catch (e) { console.error("Could not fetch participants"); }
+        };
+
+        const renderTable = (data) => {
+            const tbody = document.getElementById('participantsTableBody');
+            tbody.innerHTML = '';
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">No participants found.</td></tr>';
+                return;
+            }
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-100 hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="p-4 text-sm font-mono text-gray-500">${p.id}</td>
+                    <td class="p-4 font-medium text-gray-800">${p.fullName}</td>
+                    <td class="p-4 text-gray-600"><span class="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-semibold">${p.category}</span></td>
+                    <td class="p-4">
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="toggle" id="toggle-${p.id}" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${p.attended ? 'checked' : ''} onclick="toggleAttendance('${p.id}', this.checked)">
+                            <label for="toggle-${p.id}" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                        </div>
+                    </td>
+                    <td class="p-4 space-x-3">
+                        <button onclick="deleteParticipant('${p.id}')" class="text-red-500 hover:underline text-sm font-medium">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        const toggleAttendance = async (id, state) => {
+            try {
+                await fetch(`${API_BASE}/participants/${id}/attendance`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isAttended: state })
+                });
+                Toastify({text: "Attendance updated", backgroundColor: "green"}).showToast();
+                fetchParticipants();
+            } catch (e) {
+                Toastify({text: "Update Failed", backgroundColor: "red"}).showToast();
+            }
+        };
+
+        const deleteParticipant = async (id) => {
+            if(!confirm("Are you sure you want to delete this participant?")) return;
+            try {
+                await fetch(`${API_BASE}/participants/${id}`, { method: 'DELETE' });
+                fetchParticipants();
+                Toastify({text: "Participant deleted", backgroundColor: "orange"}).showToast();
+            } catch (e) { Toastify({text: "Failed to delete", backgroundColor: "red"}).showToast(); }
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = participants.filter(p => 
+                p.fullName.toLowerCase().includes(term) || p.id.toLowerCase().includes(term)
+            );
+            renderTable(filtered);
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const headers = "UUID,Name,Email,Category,Attended\n";
+            const csv = participants.map(p => `${p.id},"${p.fullName}","${p.email}","${p.category}",${p.attended}`).join("\n");
+            const blob = new Blob([headers + csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'attendance_report.csv');
+            a.click();
+        });
+    </script>
+</body>
+</html>

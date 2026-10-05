@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Inference Verdict | Aegis Anti-Cheat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="{{ url_for('dashboard') }}" class="brand">
+            <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <span>AEGIS ANTI-CHEAT</span>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('player_dashboard') }}" class="nav-link"><i class="fa-solid fa-gamepad"></i> My Telemetry</a>
+            <a href="{{ url_for('gameplay') }}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-rotate-right"></i> Test New Frame</a>
+            <div class="user-badge"><i class="fa-solid fa-user"></i> {{ session.username }}</div>
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 840px;">
+        <!-- Verdict Banner Card -->
+        <div class="card verdict-box {{ 'suspicious' if prediction == 'SUSPICIOUS' else 'legitimate' }}">
+            <div style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 0.5rem;">
+                Classification Model Output
+            </div>
+
+            {% if prediction == 'SUSPICIOUS' %}
+            <div class="verdict-title" style="color: var(--danger);">
+                <i class="fa-solid fa-triangle-exclamation"></i> SUSPICIOUS TELEMETRY
+            </div>
+            <p style="color: #fca5a5; font-size: 0.95rem; max-width: 550px; margin: 0 auto 1.5rem auto;">
+                Kinematic anomalies detected. Crosshair angular acceleration and rotational snap exceed human biological thresholds.
+            </p>
+            {% else %}
+            <div class="verdict-title" style="color: var(--success);">
+                <i class="fa-solid fa-shield-check"></i> LEGITIMATE BEHAVIOR
+            </div>
+            <p style="color: #6ee7b7; font-size: 0.95rem; max-width: 550px; margin: 0 auto 1.5rem auto;">
+                Continuous camera smoothing and natural wrist acceleration consistent with normal competitive play.
+            </p>
+            {% endif %}
+
+            <!-- Confidence Probability Gauge -->
+            <div class="verdict-score" style="color: {{ '#ef4444' if risk_level == 'HIGH' else ('#f59e0b' if risk_level == 'MEDIUM' else '#10b981') }};">
+                {{ probability }}%
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: -0.5rem; margin-bottom: 1rem;">
+                Probability of Cheat / Aimbot Mechanics
+            </div>
+
+            <!-- Progress Indicator -->
+            <div class="progress-bar-container">
+                <div class="progress-fill" style="width: {{ probability }}%; background: {{ '#ef4444' if risk_level == 'HIGH' else ('#f59e0b' if risk_level == 'MEDIUM' else '#10b981') }};"></div>
+            </div>
+
+            <!-- Risk Level & Threshold Badge -->
+            <div style="display: flex; justify-content: center; gap: 1rem; align-items: center; margin-top: 1.25rem;">
+                <div>
+                    Assigned Risk: 
+                    {% if risk_level == 'LOW' %}
+                    <span class="badge badge-low">LOW RISK</span>
+                    {% elif risk_level == 'MEDIUM' %}
+                    <span class="badge badge-medium">MEDIUM RISK</span>
+                    {% else %}
+                    <span class="badge badge-high">HIGH RISK</span>
+                    {% endif %}
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); border-left: 1px solid var(--border-color); padding-left: 1rem;">
+                    Decision Threshold: <strong>31.0%</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Telemetry Breakdown Details -->
+        {% if features %}
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-microchip" style="color: var(--primary);"></i>
+                Telemetry Feature Diagnostics
+            </div>
+            <div class="card-subtitle">Kinematic parameters extracted during real-time tick evaluation</div>
+
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                <div class="stat-box">
+                    <span class="stat-label">Delta Yaw</span>
+                    <span class="stat-value" style="font-size: 1.35rem;">{{ "%.2f"|format(features.delta_yaw) }}°</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Delta Pitch</span>
+                    <span class="stat-value" style="font-size: 1.35rem;">{{ "%.2f"|format(features.delta_pitch) }}°</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Accel Yaw</span>
+                    <span class="stat-value" style="font-size: 1.35rem;">{{ "%.2f"|format(features.accel_yaw) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Accel Pitch</span>
+                    <span class="stat-value" style="font-size: 1.35rem;">{{ "%.2f"|format(features.accel_pitch) }}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Sensitivity</span>
+                    <span class="stat-value" style="font-size: 1.35rem;">{{ "%.1f"|format(features.sensitivity) }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Navigation CTAs -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+            <a href="{{ url_for('player_dashboard') }}" class="btn btn-secondary">
+                <i class="fa-solid fa-arrow-left"></i> Back to Player Dashboard
+            </a>
+            <a href="{{ url_for('gameplay') }}" class="btn btn-primary">
+                <i class="fa-solid fa-play"></i> Test Another Telemetry Snapshot
+            </a>
+        </div>
+    </div>
+
+    <footer>
+        In-Game Cheat Detection System • Telemetry Ingestion Engine
+    </footer>
+</body>
+</html>
